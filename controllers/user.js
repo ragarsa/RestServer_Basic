@@ -1,42 +1,75 @@
 const { response, request } = require('express');
+const bcrypt = require('bcryptjs')
+const { validationResult } = require('express-validator');
+const User = require('../models/user');
 
 
-const getUser = (req=request, res = response) => {
+
+const getUser = async (req=request, res = response) => {
     
-    const {q, nombre, apikey, page=1, limit} = req.query;
+    let {limit = 5, from = 0} = req.query;
+    const query = {state:true}
+    if (Number.isNaN(Number(limit)) || Number.isNaN(Number(from))) {
+        limit = 5;
+        from = 0; 
+    }
+
+    
+
+
+    const [total, users] = await Promise.all([
+        User.countDocuments(query),
+        User.find(query)
+        .skip(Number(from))
+        .limit(Number(limit))
+        ]);
 
     res.json({
-        msg: 'get API Controller',
-        q,
-        nombre,
-        apikey,
-        page, 
-        limit
+        // resp
+        total,
+        users
     })
 }
 
 
 
-const postUser = (req,  res = response) => {
+const postUser = async (req,  res = response) => {
+
     
-    const {name, age} = req.body; 
-    
+    const {name, email, password, role} = req.body; 
+    const user = new User({name, email, password, role});
+  
+    // //Verify email
+   
+    //Hash password
+    const salt = bcrypt.genSaltSync();
+    user.password = bcrypt.hashSync(password, salt)
+
+    //Save in DB
+    await user.save();
 
     res.status(201).json({
-        msg: 'post API from controller',
-        name,
-        age
+        user
     })
 }
 
-const putUser = (req,  res = response) => {
+const putUser = async (req,  res = response) => {
     
-    const id = req.params.id
+    const {id} = req.params
+    const {_id, password, google, correo, role, ...resto} = req.body
+
+    //TODO validate in DB 
+    if ( password ) {
+        const salt = bcrypt.genSaltSync();
+        resto.password = bcrypt.hashSync(password, salt)
     
-    res.json({
-        msg: 'put API from controller',
-        id
-    })
+    }
+
+
+    const userDB = await User.findByIdAndUpdate(id, resto)
+
+
+    res.json(userDB)
 }
 
 const patchUser = (req,  res = response) => {
@@ -45,9 +78,18 @@ const patchUser = (req,  res = response) => {
     })
 }
 
-const deleteUser = (req,  res = response) => {
+const deleteUser = async (req,  res = response) => {
+    
+    const { id } = req.params;
+    
+    //Delete
+    // const user = await User.findByIdAndDelete(id);
+    const user = await User.findByIdAndUpdate(id, {state: false})
+
+
     res.json({
-        msg: 'delete API from controller'
+        msg: `Delete user succesfull`,
+        user
     })
 }
 
@@ -59,3 +101,22 @@ module.exports = {
     patchUser,
     deleteUser
 }
+
+
+
+
+
+
+
+
+
+
+
+
+//Verify email 
+ // const existEmail = await User.findOne({email})
+    // if (existEmail) {
+    //     return res.status(400).json({
+    //         msg:'The email already exists'
+    //     })
+    // }
