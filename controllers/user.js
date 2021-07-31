@@ -5,24 +5,24 @@ const User = require('../models/user');
 
 
 
-const getUser = async (req=request, res = response) => {
-    
-    let {limit = 5, from = 0} = req.query;
-    const query = {state:true}
+const getUser = async (req = request, res = response) => {
+
+    let { limit = 5, from = 0 } = req.query;
+    const query = { state: true }
     if (Number.isNaN(Number(limit)) || Number.isNaN(Number(from))) {
         limit = 5;
-        from = 0; 
+        from = 0;
     }
 
-    
+
 
 
     const [total, users] = await Promise.all([
         User.countDocuments(query),
         User.find(query)
-        .skip(Number(from))
-        .limit(Number(limit))
-        ]);
+            .skip(Number(from))
+            .limit(Number(limit))
+    ]);
 
     res.json({
         // resp
@@ -33,14 +33,14 @@ const getUser = async (req=request, res = response) => {
 
 
 
-const postUser = async (req,  res = response) => {
+const postUser = async (req, res = response) => {
 
-    
-    const {name, email, password, role} = req.body; 
-    const user = new User({name, email, password, role});
-  
+
+    const { name, email, password, role } = req.body;
+    const user = new User({ name, email, password, role });
+
     // //Verify email
-   
+
     //Hash password
     const salt = bcrypt.genSaltSync();
     user.password = bcrypt.hashSync(password, salt)
@@ -53,16 +53,16 @@ const postUser = async (req,  res = response) => {
     })
 }
 
-const putUser = async (req,  res = response) => {
-    
-    const {id} = req.params
-    const {_id, password, google, correo, role, ...resto} = req.body
+const putUser = async (req, res = response) => {
+
+    const { id } = req.params
+    const { _id, password, google, correo, role, ...resto } = req.body;
 
     //TODO validate in DB 
-    if ( password ) {
+    if (password) {
         const salt = bcrypt.genSaltSync();
         resto.password = bcrypt.hashSync(password, salt)
-    
+
     }
 
 
@@ -72,27 +72,32 @@ const putUser = async (req,  res = response) => {
     res.json(userDB)
 }
 
-const patchUser = (req,  res = response) => {
+const patchUser = (req, res = response) => {
     res.json({
         msg: 'patch API from controller'
     })
 }
 
-const deleteUser = async (req,  res = response) => {
-    
-    const { id } = req.params;
+const deleteUser = async (req, res = response) => {
+    try {
 
-    
-
-
-    await User.findByIdAndUpdate(id, {state: false});
-    const user = await User.findById(id);
+        const { id } = req.params;
 
 
 
-    res.json({
-        user
-    })
+
+        await User.findByIdAndUpdate(id, { state: false });
+        const user = await User.findById(id);
+
+
+
+        res.json({
+            user
+        })
+    } catch (error) {
+        res.json({msg: 'Algo anda mal'})
+    }
+
 }
 
 
